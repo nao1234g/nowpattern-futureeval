@@ -37,6 +37,7 @@ class ComplianceCheckTests(unittest.TestCase):
             target = Path(tmp)
             shutil.copytree(ROOT / ".github", target / ".github")
             shutil.copy2(ROOT / "main.py", target / "main.py")
+            shutil.copy2(ROOT / "model_allowance_probe.py", target / "model_allowance_probe.py")
             live = target / ".github" / "workflows" / "run_bot_on_tournament.yaml"
             live.write_text(
                 live.read_text(encoding="utf-8").replace(
@@ -53,10 +54,11 @@ class ComplianceCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
             shutil.copytree(ROOT / ".github", target / ".github")
+            shutil.copy2(ROOT / "model_allowance_probe.py", target / "model_allowance_probe.py")
             main = (ROOT / "main.py").read_text(encoding="utf-8")
             (target / "main.py").write_text(
                 main.replace(
-                    'model="metaculus/gpt-4o", temperature=0.1',
+                    'model="metaculus/gpt-4o-mini", temperature=0.1',
                     'model="metaculus/gpt-4o-search-preview", temperature=0.1',
                 ),
                 encoding="utf-8",

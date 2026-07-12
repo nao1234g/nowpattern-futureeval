@@ -674,25 +674,27 @@ if __name__ == "__main__":
     publish_to_metaculus = True
     print_startup_banner(run_mode, will_publish=publish_to_metaculus)
 
-    # Pin every purpose to models covered by the Metaculus token proxy.  The
-    # forecasting-tools default researcher currently selects
-    # metaculus/gpt-4o-search-preview, but not every bot token has an allowance
-    # for that search model.  gpt-4o/gpt-4o-mini are the framework's own
-    # Metaculus defaults for forecasting/parsing and avoid a paid provider key.
+    # Pin every purpose to the lowest-cost model used by forecasting-tools'
+    # own Metaculus defaults.  A one-call workflow preflight proves this bot
+    # token's allowance before any question is processed.
     template_bot = SummerTemplateBot2026(
         research_reports_per_question=1,
-        predictions_per_research_report=5,
+        predictions_per_research_report=1 if run_mode == "test_questions" else 5,
         use_research_summary_to_forecast=False,
         publish_reports_to_metaculus=publish_to_metaculus,
         folder_to_save_reports_to=None,
         skip_previously_forecasted_questions=True,
         extra_metadata_in_explanation=True,
         llms={
-            "default": GeneralLlm(model="metaculus/gpt-4o", temperature=0.3),
+            "default": GeneralLlm(
+                model="metaculus/gpt-4o-mini", temperature=0.3
+            ),
             "summarizer": GeneralLlm(
                 model="metaculus/gpt-4o-mini", temperature=0.3
             ),
-            "researcher": GeneralLlm(model="metaculus/gpt-4o", temperature=0.1),
+            "researcher": GeneralLlm(
+                model="metaculus/gpt-4o-mini", temperature=0.1
+            ),
             "parser": GeneralLlm(model="metaculus/gpt-4o-mini", temperature=0.3),
         },
     )
