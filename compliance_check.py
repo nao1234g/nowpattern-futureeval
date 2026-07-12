@@ -54,10 +54,11 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
     main_path = root / "main.py"
     live_path = root / ".github" / "workflows" / "run_bot_on_tournament.yaml"
     test_path = root / ".github" / "workflows" / "test_bot.yaml"
+    canary_path = root / ".github" / "workflows" / "live_canary.yaml"
     probe_path = root / "model_allowance_probe.py"
     missing = [
         str(p.relative_to(root))
-        for p in (main_path, live_path, test_path, probe_path)
+        for p in (main_path, live_path, test_path, canary_path, probe_path)
         if not p.exists()
     ]
     if missing:
@@ -67,6 +68,7 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
     main = main_path.read_text(encoding="utf-8")
     live = live_path.read_text(encoding="utf-8")
     test = test_path.read_text(encoding="utf-8")
+    canary = canary_path.read_text(encoding="utf-8")
     configured_models = _configured_general_llm_models(main)
     checks = [
         _check(
@@ -109,6 +111,19 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
             "test_first",
             "--mode test_questions" in test and "bot-testing-area" in main,
             "manual smoke test targets the official bot-testing-area",
+        ),
+        _check(
+            "deterministic_binary_parser",
+            "extract_last_probability(reasoning)" in main
+            and "BinaryPrediction" not in main,
+            "binary forecasts do not depend on a second LLM producing JSON",
+        ),
+        _check(
+            "live_one_question_canary",
+            "I_ACKNOWLEDGE_LIVE_SUBMISSION" in canary
+            and "--mode live_canary --tournament-id 33022" in canary
+            and "eligible_questions[:1]" in main,
+            "manual LIVE canary is explicit and limited to one unforecasted question",
         ),
         _check(
             "live_default_off",
