@@ -49,6 +49,23 @@ class ComplianceCheckTests(unittest.TestCase):
         failed = {row["name"] for row in report["checks"] if not row["ok"]}
         self.assertIn("live_default_off", failed)
 
+    def test_unallowed_search_model_is_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            shutil.copytree(ROOT / ".github", target / ".github")
+            main = (ROOT / "main.py").read_text(encoding="utf-8")
+            (target / "main.py").write_text(
+                main.replace(
+                    'model="metaculus/gpt-4o", temperature=0.1',
+                    'model="metaculus/gpt-4o-search-preview", temperature=0.1',
+                ),
+                encoding="utf-8",
+            )
+            report = compliance_check.audit(target)
+        self.assertFalse(report["ok"])
+        failed = {row["name"] for row in report["checks"] if not row["ok"]}
+        self.assertIn("metaculus_proxy_model_pin", failed)
+
 
 if __name__ == "__main__":
     unittest.main()

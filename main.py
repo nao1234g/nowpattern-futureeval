@@ -674,9 +674,11 @@ if __name__ == "__main__":
     publish_to_metaculus = True
     print_startup_banner(run_mode, will_publish=publish_to_metaculus)
 
-    # Configure the bot. The `llms=` block below is commented out to use
-    # whichever default models forecasting-tools picks based on your env vars;
-    # uncomment and edit to pin specific models.
+    # Pin every purpose to models covered by the Metaculus token proxy.  The
+    # forecasting-tools default researcher currently selects
+    # metaculus/gpt-4o-search-preview, but not every bot token has an allowance
+    # for that search model.  gpt-4o/gpt-4o-mini are the framework's own
+    # Metaculus defaults for forecasting/parsing and avoid a paid provider key.
     template_bot = SummerTemplateBot2026(
         research_reports_per_question=1,
         predictions_per_research_report=5,
@@ -685,17 +687,14 @@ if __name__ == "__main__":
         folder_to_save_reports_to=None,
         skip_previously_forecasted_questions=True,
         extra_metadata_in_explanation=True,
-        # llms={
-        #     "default": GeneralLlm(
-        #         model="openrouter/openai/gpt-4o",
-        #         temperature=0.3,
-        #         timeout=40,
-        #         allowed_tries=2,
-        #     ),
-        #     "summarizer": "openai/gpt-4o-mini",
-        #     "researcher": "asknews/news-summaries",
-        #     "parser": "openai/gpt-4o-mini",
-        # },
+        llms={
+            "default": GeneralLlm(model="metaculus/gpt-4o", temperature=0.3),
+            "summarizer": GeneralLlm(
+                model="metaculus/gpt-4o-mini", temperature=0.3
+            ),
+            "researcher": GeneralLlm(model="metaculus/gpt-4o", temperature=0.1),
+            "parser": GeneralLlm(model="metaculus/gpt-4o-mini", temperature=0.3),
+        },
     )
 
     # Per-mode tournament URL shown in the summary banner footer. These
