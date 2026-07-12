@@ -1,4 +1,23 @@
 # Simple Metaculus forecasting bot
+
+## NowpatternFutureEval operating contract
+
+This fork is the autonomous execution plane for the `NowpatternFutureEval`
+Metaculus bot. It pins the Summer 2026 tournament to ID `33022`, keeps the
+scheduled LIVE workflow disabled by default, and requires the manual `Test Bot`
+workflow to succeed against the official `bot-testing-area` before the
+repository variable `FUTUREEVAL_LIVE_ENABLED=true` is set.
+
+Secret values belong only in GitHub Actions Secrets. Run the secret-safe local
+configuration audit with:
+
+```bash
+python compliance_check.py --check --json
+python -m unittest discover -s tests -v
+```
+
+The live workflow remains fail-closed when `METACULUS_TOKEN` is missing. No
+human may inspect and modify forecasts between generation and submission.
 This repository contains a simple bot meant to get you started with creating your own bot for the AI Forecasting Tournament. Go to https://www.metaculus.com/futureeval/participate/ for more info and tournament rules (and then go to the  "Getting Started" section of our [resources](https://www.metaculus.com/notebooks/38928/ai-benchmark-resources/#want-to-join-the-ai-forecasting-benchmark) page).
 
 **Brand new to this?** You can get a working bot running in about 5 minutes without writing a single line of code — just fork this repo, paste two API keys into GitHub, and click "Run workflow". See **[Quick start](#quick-start--fork-and-use-github-actions)** below.
