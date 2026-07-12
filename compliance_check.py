@@ -8,6 +8,7 @@ values, lengths, hashes, or prefixes.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -30,6 +31,25 @@ def _check(name: str, ok: bool, detail: str) -> dict[str, object]:
     return {"name": name, "ok": bool(ok), "detail": detail}
 
 
+def _configured_general_llm_models(source: str) -> list[str]:
+    """Return literal GeneralLlm(model=...) values from executable syntax."""
+    tree = ast.parse(source)
+    models: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if not isinstance(node.func, ast.Name) or node.func.id != "GeneralLlm":
+            continue
+        for keyword in node.keywords:
+            if (
+                keyword.arg == "model"
+                and isinstance(keyword.value, ast.Constant)
+                and isinstance(keyword.value.value, str)
+            ):
+                models.append(keyword.value.value)
+    return models
+
+
 def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
     main_path = root / "main.py"
     live_path = root / ".github" / "workflows" / "run_bot_on_tournament.yaml"
@@ -42,6 +62,7 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
     main = main_path.read_text(encoding="utf-8")
     live = live_path.read_text(encoding="utf-8")
     test = test_path.read_text(encoding="utf-8")
+    configured_models = _configured_general_llm_models(main)
     checks = [
         _check(
             "question_formats",
@@ -52,6 +73,13 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
             "reasoned_reports",
             "ReasonedPrediction" in main and "extra_metadata_in_explanation=True" in main,
             "forecast report includes a published rationale/comment",
+        ),
+        _check(
+            "metaculus_proxy_model_pin",
+            configured_models.count("metaculus/gpt-4o") >= 2
+            and configured_models.count("metaculus/gpt-4o-mini") >= 2
+            and "metaculus/gpt-4o-search-preview" not in configured_models,
+            "all bot purposes use token-proxy models covered without a paid provider key",
         ),
         _check(
             "dedupe",
