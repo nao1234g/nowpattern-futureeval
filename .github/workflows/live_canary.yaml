@@ -7,6 +7,10 @@ on:
         description: Type I_ACKNOWLEDGE_LIVE_SUBMISSION
         required: true
         type: string
+  schedule:
+    # One-shot retry immediately after the documented free quota reset.
+    # The date guard below makes later annual cron matches fail before setup.
+    - cron: "5 0 13 7 *"
 
 permissions:
   contents: read
@@ -19,13 +23,19 @@ jobs:
   live_canary:
     runs-on: ubuntu-latest
     env:
+      EVENT_NAME: ${{ github.event_name }}
       CONFIRMATION: ${{ inputs.confirmation }}
       FUTUREEVAL_TOURNAMENT_ID: "33022"
       METACULUS_TOKEN: ${{ secrets.METACULUS_TOKEN }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
     steps:
-      - name: Require explicit LIVE acknowledgement
-        run: test "$CONFIRMATION" = "I_ACKNOWLEDGE_LIVE_SUBMISSION"
+      - name: Require explicit LIVE acknowledgement or one-shot reset date
+        run: |
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            test "$(date -u +%F)" = "2026-07-13"
+          else
+            test "$CONFIRMATION" = "I_ACKNOWLEDGE_LIVE_SUBMISSION"
+          fi
       - name: Check out repository
         uses: actions/checkout@v4
       - uses: actions/setup-python@v5
