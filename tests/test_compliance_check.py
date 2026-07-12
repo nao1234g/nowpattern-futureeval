@@ -20,14 +20,22 @@ class ComplianceCheckTests(unittest.TestCase):
         self.assertFalse(report["secret_values_exposed"])
 
     def test_runtime_fails_closed_without_token(self) -> None:
-        with mock.patch.dict(os.environ, {"METACULUS_TOKEN": ""}, clear=False):
+        with mock.patch.dict(
+            os.environ,
+            {"METACULUS_TOKEN": "", "OPENROUTER_API_KEY": ""},
+            clear=False,
+        ):
             report = compliance_check.audit(ROOT, require_secrets=True)
         self.assertFalse(report["ok"])
         self.assertEqual(report["verdict"], "BLOCKED")
 
     def test_runtime_accepts_token_without_exposing_it(self) -> None:
         secret = "x" * 40
-        with mock.patch.dict(os.environ, {"METACULUS_TOKEN": secret}, clear=False):
+        with mock.patch.dict(
+            os.environ,
+            {"METACULUS_TOKEN": secret, "OPENROUTER_API_KEY": "provider-key"},
+            clear=False,
+        ):
             report = compliance_check.audit(ROOT, require_secrets=True)
         self.assertTrue(report["ok"], report)
         self.assertNotIn(secret, str(report))
@@ -58,7 +66,7 @@ class ComplianceCheckTests(unittest.TestCase):
             main = (ROOT / "main.py").read_text(encoding="utf-8")
             (target / "main.py").write_text(
                 main.replace(
-                    'model="metaculus/gpt-4o-mini", temperature=0.1',
+                    'model="openrouter/openrouter/free", temperature=0.1',
                     'model="metaculus/gpt-4o-search-preview", temperature=0.1',
                 ),
                 encoding="utf-8",

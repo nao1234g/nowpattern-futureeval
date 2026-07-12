@@ -81,10 +81,10 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
         ),
         _check(
             "metaculus_proxy_model_pin",
-            configured_models.count("metaculus/gpt-4o-mini") == 4
-            and "metaculus/gpt-4o" not in configured_models
+            configured_models.count("openrouter/openrouter/free") == 4
+            and not any(model.startswith("metaculus/") for model in configured_models)
             and "metaculus/gpt-4o-search-preview" not in configured_models,
-            "all four bot purposes use the single preflighted token-proxy model",
+            "all four bot purposes use the single preflighted zero-cost router",
         ),
         _check(
             "model_allowance_preflight",
@@ -146,8 +146,8 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
     checks.append(
         _check(
             "forecast_provider_ready",
-            True,
-            "external provider configured" if provider_ready else "Metaculus proxy fallback selected",
+            provider_ready if require_secrets else True,
+            "external provider configured" if provider_ready else "provider secret required at runtime",
         )
     )
     return _report(checks, require_secrets=require_secrets)

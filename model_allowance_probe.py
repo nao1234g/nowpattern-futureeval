@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Probe one Metaculus-proxy model without exposing secrets or model output."""
+"""Probe one zero-cost forecast model without exposing secrets or output."""
 from __future__ import annotations
 
 import argparse
@@ -8,7 +8,8 @@ import json
 import os
 from collections.abc import Awaitable, Callable
 
-DEFAULT_MODEL = "metaculus/gpt-4o-mini"
+DEFAULT_MODEL = "openrouter/openrouter/free"
+REQUIRED_SECRET = "OPENROUTER_API_KEY"
 
 
 def classify_error(exc: BaseException) -> str:
@@ -43,9 +44,9 @@ async def probe(
     invoke: Callable[[str], Awaitable[None]] = _invoke_model,
 ) -> dict[str, object]:
     """Return only operational metadata; never return a token or LLM response."""
-    if not os.getenv("METACULUS_TOKEN", "").strip():
+    if not os.getenv(REQUIRED_SECRET, "").strip():
         return {
-            "schema_version": "metaculus_model_allowance_probe.v1",
+            "schema_version": "model_allowance_probe.v1",
             "model": model,
             "ok": False,
             "verdict": "BLOCKED",
@@ -57,7 +58,7 @@ async def probe(
         await invoke(model)
     except Exception as exc:  # provider exceptions vary by forecasting-tools version
         return {
-            "schema_version": "metaculus_model_allowance_probe.v1",
+            "schema_version": "model_allowance_probe.v1",
             "model": model,
             "ok": False,
             "verdict": "BLOCKED",
@@ -66,7 +67,7 @@ async def probe(
         }
 
     return {
-        "schema_version": "metaculus_model_allowance_probe.v1",
+        "schema_version": "model_allowance_probe.v1",
         "model": model,
         "ok": True,
         "verdict": "ALLOWED",
