@@ -54,7 +54,12 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
     main_path = root / "main.py"
     live_path = root / ".github" / "workflows" / "run_bot_on_tournament.yaml"
     test_path = root / ".github" / "workflows" / "test_bot.yaml"
-    missing = [str(p.relative_to(root)) for p in (main_path, live_path, test_path) if not p.exists()]
+    probe_path = root / "model_allowance_probe.py"
+    missing = [
+        str(p.relative_to(root))
+        for p in (main_path, live_path, test_path, probe_path)
+        if not p.exists()
+    ]
     if missing:
         checks = [_check("required_files", False, "missing=" + ",".join(missing))]
         return _report(checks, require_secrets=require_secrets)
@@ -76,10 +81,16 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
         ),
         _check(
             "metaculus_proxy_model_pin",
-            configured_models.count("metaculus/gpt-4o") >= 2
-            and configured_models.count("metaculus/gpt-4o-mini") >= 2
+            configured_models.count("metaculus/gpt-4o-mini") == 4
+            and "metaculus/gpt-4o" not in configured_models
             and "metaculus/gpt-4o-search-preview" not in configured_models,
-            "all bot purposes use token-proxy models covered without a paid provider key",
+            "all four bot purposes use the single preflighted token-proxy model",
+        ),
+        _check(
+            "model_allowance_preflight",
+            "poetry run python model_allowance_probe.py" in test
+            and test.index("model_allowance_probe.py") < test.index("--mode test_questions"),
+            "one-call allowance probe runs before any test question is processed",
         ),
         _check(
             "dedupe",
