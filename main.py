@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -660,6 +661,12 @@ if __name__ == "__main__":
         default="tournament",
         help="What to forecast on (default: tournament)",
     )
+    parser.add_argument(
+        "--tournament-id",
+        type=int,
+        default=os.getenv("FUTUREEVAL_TOURNAMENT_ID", "33022"),
+        help="Pinned seasonal FutureEval tournament id (default: 33022)",
+    )
     args = parser.parse_args()
     run_mode: Literal["tournament", "metaculus_cup", "test_questions"] = args.mode
 
@@ -707,7 +714,7 @@ if __name__ == "__main__":
     if run_mode == "tournament":
         seasonal_tournament_reports = asyncio.run(
             template_bot.forecast_on_tournament(
-                client.CURRENT_AI_COMPETITION_ID, return_exceptions=True
+                args.tournament_id, return_exceptions=True
             )
         )
         minibench_reports = asyncio.run(
