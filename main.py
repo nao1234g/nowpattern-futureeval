@@ -674,9 +674,10 @@ if __name__ == "__main__":
     publish_to_metaculus = True
     print_startup_banner(run_mode, will_publish=publish_to_metaculus)
 
-    # Pin every purpose to the lowest-cost model used by forecasting-tools'
-    # own Metaculus defaults.  A one-call workflow preflight proves this bot
-    # token's allowance before any question is processed.
+    # The newly created Metaculus bot token has no bundled model allowance.
+    # Use OpenRouter's documented zero-cost router for the bot-testing lane;
+    # a one-call workflow preflight proves availability before any question
+    # is processed.  LIVE remains independently default-off.
     template_bot = SummerTemplateBot2026(
         research_reports_per_question=1,
         predictions_per_research_report=1 if run_mode == "test_questions" else 5,
@@ -687,15 +688,17 @@ if __name__ == "__main__":
         extra_metadata_in_explanation=True,
         llms={
             "default": GeneralLlm(
-                model="metaculus/gpt-4o-mini", temperature=0.3
+                model="openrouter/openrouter/free", temperature=0.3
             ),
             "summarizer": GeneralLlm(
-                model="metaculus/gpt-4o-mini", temperature=0.3
+                model="openrouter/openrouter/free", temperature=0.3
             ),
             "researcher": GeneralLlm(
-                model="metaculus/gpt-4o-mini", temperature=0.1
+                model="openrouter/openrouter/free", temperature=0.1
             ),
-            "parser": GeneralLlm(model="metaculus/gpt-4o-mini", temperature=0.3),
+            "parser": GeneralLlm(
+                model="openrouter/openrouter/free", temperature=0.3
+            ),
         },
     )
 
