@@ -126,6 +126,12 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
             "manual LIVE canary is explicit and limited to one supported unforecasted question",
         ),
         _check(
+            "quota_reset_one_shot",
+            'cron: "5 0 13 7 *"' in canary
+            and 'test "$(date -u +%F)" = "2026-07-13"' in canary,
+            "quota-exhausted LIVE retry is scheduled once after the UTC reset",
+        ),
+        _check(
             "live_default_off",
             "if: vars.FUTUREEVAL_LIVE_ENABLED == 'true'" in live,
             "scheduled LIVE execution requires an explicit repository variable",
