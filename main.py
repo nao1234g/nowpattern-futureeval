@@ -14,6 +14,7 @@ from bot_helpers import (
     print_startup_banner,
     silence_noisy_dependencies,
 )
+from forecast_parsing import extract_last_probability
 
 silence_noisy_dependencies()
 
@@ -34,7 +35,6 @@ from forecasting_tools import (
     ConditionalPrediction,
     PredictionTypes,
     PredictionAffirmed,
-    BinaryPrediction,
     PredictedOptionList,
     ReasonedPrediction,
     SmartSearcher,
@@ -231,13 +231,7 @@ class SummerTemplateBot2026(ForecastBot):
     ) -> ReasonedPrediction[float]:
         reasoning = await self.get_llm("default", "llm").invoke(prompt)
         logger.info(f"Reasoning for URL {question.page_url}: {reasoning}")
-        binary_prediction: BinaryPrediction = await structure_output(
-            reasoning,
-            BinaryPrediction,
-            model=self.get_llm("parser", "llm"),
-            num_validation_samples=self._structure_output_validation_samples,
-        )
-        decimal_pred = max(0.01, min(0.99, binary_prediction.prediction_in_decimal))
+        decimal_pred = extract_last_probability(reasoning)
 
         logger.info(
             f"Forecasted URL {question.page_url} with prediction: {decimal_pred}."
@@ -657,7 +651,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mode",
         type=str,
-        choices=["tournament", "metaculus_cup", "test_questions"],
+        choices=["tournament", "metaculus_cup", "test_questions", "live_canary"],
         default="tournament",
         help="What to forecast on (default: tournament)",
     )
@@ -668,7 +662,9 @@ if __name__ == "__main__":
         help="Pinned seasonal FutureEval tournament id (default: 33022)",
     )
     args = parser.parse_args()
-    run_mode: Literal["tournament", "metaculus_cup", "test_questions"] = args.mode
+    run_mode: Literal[
+        "tournament", "metaculus_cup", "test_questions", "live_canary"
+    ] = args.mode
 
     check_environment(strict=True)
     publish_to_metaculus = True
@@ -680,8 +676,11 @@ if __name__ == "__main__":
     # is processed.  LIVE remains independently default-off.
     template_bot = SummerTemplateBot2026(
         research_reports_per_question=1,
-        predictions_per_research_report=1 if run_mode == "test_questions" else 5,
+        predictions_per_research_report=(
+            1 if run_mode in {"test_questions", "live_canary"} else 5
+        ),
         use_research_summary_to_forecast=False,
+        enable_summarize_research=False,
         publish_reports_to_metaculus=publish_to_metaculus,
         folder_to_save_reports_to=None,
         skip_previously_forecasted_questions=True,
@@ -709,6 +708,7 @@ if __name__ == "__main__":
         "tournament": "https://www.metaculus.com/tournament/summer-futureeval-2026/",
         "metaculus_cup": "https://www.metaculus.com/tournament/metaculus-cup-summer-2025/",
         "test_questions": "https://www.metaculus.com/tournament/bot-testing-area/",
+        "live_canary": "https://www.metaculus.com/tournament/summer-futureeval-2026/",
     }
 
     # Dispatch on mode. Each branch produces a list of ForecastReport (or
@@ -745,6 +745,20 @@ if __name__ == "__main__":
         forecast_reports = asyncio.run(
             template_bot.forecast_on_tournament(
                 "bot-testing-area", return_exceptions=True
+            )
+        )
+    elif run_mode == "live_canary":
+        questions = client.get_all_open_questions_from_tournament(args.tournament_id)
+        eligible_questions = [
+            question
+            for question in questions
+            if isinstance(question, BinaryQuestion) and not question.already_forecasted
+        ]
+        if not eligible_questions:
+            raise RuntimeError("no unforecasted binary LIVE question is available")
+        forecast_reports = asyncio.run(
+            template_bot.forecast_questions(
+                eligible_questions[:1], return_exceptions=True
             )
         )
 
