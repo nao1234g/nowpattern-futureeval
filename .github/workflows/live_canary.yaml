@@ -44,5 +44,5 @@ jobs:
           poetry run python model_allowance_probe.py
           poetry run python -m unittest discover -s tests -v
           poetry run python compliance_check.py --check --require-secrets --json
-      - name: Submit exactly one unforecasted binary LIVE question
+      - name: Submit exactly one unforecasted supported LIVE question
         run: poetry run python main.py --mode live_canary --tournament-id 33022
