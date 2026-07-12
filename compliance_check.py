@@ -123,7 +123,7 @@ def audit(root: Path, *, require_secrets: bool = False) -> dict[str, object]:
             "I_ACKNOWLEDGE_LIVE_SUBMISSION" in canary
             and "--mode live_canary --tournament-id 33022" in canary
             and "eligible_questions[:1]" in main,
-            "manual LIVE canary is explicit and limited to one unforecasted question",
+            "manual LIVE canary is explicit and limited to one supported unforecasted question",
         ),
         _check(
             "live_default_off",

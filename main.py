@@ -752,10 +752,15 @@ if __name__ == "__main__":
         eligible_questions = [
             question
             for question in questions
-            if isinstance(question, BinaryQuestion) and not question.already_forecasted
+            if not question.already_forecasted
         ]
         if not eligible_questions:
-            raise RuntimeError("no unforecasted binary LIVE question is available")
+            raise RuntimeError("no unforecasted LIVE question is available")
+        logger.info(
+            "Selected LIVE canary type=%s url=%s",
+            type(eligible_questions[0]).__name__,
+            eligible_questions[0].page_url,
+        )
         forecast_reports = asyncio.run(
             template_bot.forecast_questions(
                 eligible_questions[:1], return_exceptions=True
